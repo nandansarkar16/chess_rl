@@ -39,38 +39,63 @@ For the majority-vote rows, the vote is taken over the same 16 samples.
 
 ## Setup
 
+We run everything with Apptainer on a Slurm cluster. One-time setup:
+
 ```bash
+git clone https://github.com/nandansarkar16/chess_rl.git && cd chess_rl
+
+# Data and SFT checkpoints
 hf download nandansarkar/chess-e2h-rl --repo-type dataset --local-dir /data/rl
 hf download nandansarkar/chess-100m-sft-elo800-900 --local-dir /data/sft
 
-# Docker
-docker run --gpus all --ipc=host -v $PWD:/workspace -v /data:/data -it \
-  radixark/miles@sha256:5b41bff2ecd42f1e71b5d8658e777541a821ef96556ae06b48333d521e0ca25e
-pip install python-chess
-
-# or Apptainer
+# Container image (~13 GB; put it somewhere with space)
 apptainer pull miles.sif docker://radixark/miles@sha256:5b41bff2ecd42f1e71b5d8658e777541a821ef96556ae06b48333d521e0ca25e
-pip install --target ./pydeps python-chess
-# then prefix commands with: apptainer exec --nv --env PYTHONPATH=$PWD/pydeps miles.sif
+
+# The image doesn't ship python-chess. Install it into a folder from inside
+# the image so it matches the image's Python, then add it to PYTHONPATH later.
+apptainer exec miles.sif pip install --target ./pydeps python-chess
 ```
+
+Docker works too: run the same image with `--gpus all --ipc=host`, mount the
+repo and data, and `pip install python-chess` inside it.
 
 ## Running
 
-Everything below runs inside the container.
+Each arm is one job on one GPU. This is how we launch an arm on Slurm (adjust
+the `#SBATCH` lines for your cluster):
 
 ```bash
+#!/bin/bash
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
+#SBATCH --time=72:00:00
+set -eo pipefail
+
+# Conda can leak compiler variables that break Triton inside the container.
+unset CC CXX CC_FOR_BUILD CPP GCC
+
+export ARM=mixed                          # all | easy | mixed | hard
 export SFT_CKPT=/data/sft/11B             # which SFT checkpoint
 export MODEL_ID=100m_11B                  # name used in output paths
 export DATA_DIR=/data/rl/900_easy17k_1200_hard
 export OUTPUT_DIR=/data/outputs
 
-ARM=all   bash run_rl.sh                  # one arm per GPU / job
-ARM=easy  bash run_rl.sh
-ARM=mixed bash run_rl.sh
-ARM=hard  bash run_rl.sh
+cd /path/to/chess_rl
+apptainer exec --nv \
+    --bind /data \
+    --env PYTHONPATH=$PWD/pydeps \
+    /path/to/miles.sif \
+    bash run_rl.sh
 ```
 
-Add `--dry-run` to print the training command without starting it. If a job
+Notes:
+- Apptainer passes your exported variables into the container. `--bind` any
+  directory the job reads or writes that your cluster doesn't mount by default
+  (data, outputs, the repo if it's outside your home).
+- Submit four of these, one per `ARM`. They don't depend on each other.
+
+Add `--dry-run` after `run_rl.sh` to print the training command without starting it. If a job
 dies, rerun the same command with `RESUME=1` and it picks up from the last
 checkpoint.
 
@@ -97,13 +122,15 @@ repo in your account:
 
 ```bash
 hf auth login
-ARM=mixed HF_REPO=<your-username>/<repo-name> bash export_hf.sh   # same env vars as above
+# same env vars and apptainer command as the training job, but run export_hf.sh
+export HF_REPO=<your-username>/<repo-name>
+apptainer exec --nv --bind /data --env PYTHONPATH=$PWD/pydeps /path/to/miles.sif \
+    bash export_hf.sh
 ```
 
 That uploads `global_step_100` … `global_step_2000` (~400 MB each) to
 `<MODEL_ID>/<arm>_<reward>_g16/` in your repo, created private. Share it with
-us when done. The raw checkpoints under `OUTPUT_DIR` (~1.2 GB each, including
-optimizer state) are only needed for resuming and can be deleted afterwards.
+us when done.
 
 ## Repo layout
 
