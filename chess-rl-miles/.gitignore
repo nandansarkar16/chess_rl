@@ -1,0 +1,36 @@
+# Local environments and generated Python files
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+.DS_Store
+
+# Credentials and launch recovery state
+.env
+.env.*
+*.pem
+*.key
+.launch-recovery/
+.modal-launch-records/
+.modal-launch-recovery/
+
+# Training data and outputs
+/data/
+/sft/
+/checkpoints/
+/outputs/
+/logs/
+/rollouts/
+wandb/
+mlflow/
+*.parquet
+*.jsonl
+*.safetensors
+*.distcp
+*.pt
+*.pth
