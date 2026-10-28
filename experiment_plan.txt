@@ -1,0 +1,39 @@
+Experiment plan: chess easy-to-hard RL, group size 16
+
+What's changing
+We're switching every arm to group size 16. Previously the majority-vote
+arms sampled 32 rollouts, voted over all 32, and trained on only 8. Now every
+arm samples 16 per puzzle and trains on all 16, and the majority vote is taken
+over those same 16. This is the default in run_rl.sh (don't set LEGACY_32_8).
+Because of this we're rerunning the four RL arms for each pre-training budget.
+
+What to run
+For each SFT checkpoint, run all four arms (see README):
+  ARM=all, ARM=easy, ARM=mixed, ARM=hard
+with:
+  DATA_DIR   = <download>/900_easy17k_1200_hard
+  SFT_CKPT   = <download>/<budget>        (e.g. /data/sft/40B)
+  MODEL_ID   = 100m_<budget>               (e.g. 100m_40B)
+  NUM_GPUS   = 2                           (more is fine)
+Everything else stays at the defaults: 2,000 steps, checkpoint every 100.
+
+Order
+  1. 40B   (start here)
+  2. 20B
+  3. 11B
+  4. 2.1B
+  5. 1B and 0.5B, once we upload those SFT checkpoints
+
+SFT checkpoints: https://huggingface.co/nandansarkar/chess-100m-sft-elo800-900
+(folders 2.1B/, 11B/, 20B/, 40B/). Data:
+https://huggingface.co/datasets/nandansarkar/chess-e2h-rl
+
+Each budget is 4 jobs x 2 GPUs = 8 GPUs. If you have more, feel free to run
+the next budget in parallel instead of waiting.
+
+What to send back
+This is RL only; we run evaluation ourselves. When an arm finishes, run
+export_hf.sh (see README) to upload its checkpoints (global_step_100 through
+global_step_2000) to an HF repo in your account, and share the repo with us.
+Use one repo for everything; checkpoints land under <MODEL_ID>/<arm>_..._g16/
+so runs don't collide. Let us know when each budget's four arms are up.
