@@ -34,7 +34,8 @@ For the majority-vote rows, the vote is taken over the same 16 samples.
   Miles; it has required changes.
 - **Data:** [`nandansarkar/chess-e2h-rl`](https://huggingface.co/datasets/nandansarkar/chess-e2h-rl)
 - **SFT checkpoints:** [`nandansarkar/chess-100m-sft-elo800-900`](https://huggingface.co/nandansarkar/chess-100m-sft-elo800-900),
-  one folder per pre-training budget (`2.1B/`, `11B/`, `20B/`, `40B/` tokens).
+  one folder per pre-training budget (`0.53B/`, `1.1B/`, `2.1B/`, `11B/`, `20B/`,
+  `40B/` tokens).
   We'll tell you which to run.
 
 ## Setup

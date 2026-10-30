@@ -22,10 +22,11 @@ Order
   2. 20B
   3. 11B
   4. 2.1B
-  5. 1B and 0.5B, once we upload those SFT checkpoints
+  5. 1.1B
+  6. 0.53B
 
 SFT checkpoints: https://huggingface.co/nandansarkar/chess-100m-sft-elo800-900
-(folders 2.1B/, 11B/, 20B/, 40B/). Data:
+(folders 0.53B/, 1.1B/, 2.1B/, 11B/, 20B/, 40B/). Data:
 https://huggingface.co/datasets/nandansarkar/chess-e2h-rl
 
 Each budget is 4 jobs x 2 GPUs = 8 GPUs. If you have more, feel free to run
